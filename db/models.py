@@ -61,7 +61,8 @@ class MovieSession(models.Model):
 
 
 class User(AbstractUser):
-    pass
+    class Meta:
+        default_related_name = "user"
 
 
 class Order(models.Model):
