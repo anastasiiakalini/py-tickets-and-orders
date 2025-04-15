@@ -65,7 +65,8 @@ class User(AbstractUser):
 
 class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                             related_name="orders")
 
     class Meta:
         ordering = ["-created_at"]
@@ -76,27 +77,32 @@ class Order(models.Model):
 
 class Ticket(models.Model):
     movie_session = models.ForeignKey(MovieSession,
-                                      on_delete=models.DO_NOTHING)
+                                      on_delete=models.CASCADE,
+                                      related_name="tickets")
     order = models.ForeignKey(Order,
-                              on_delete=models.DO_NOTHING)
+                              on_delete=models.CASCADE, related_name="tickets")
     row = models.IntegerField()
     seat = models.IntegerField()
 
     class Meta:
-        unique_together = ("movie_session", "row", "seat")
+        constraints = [
+            models.UniqueConstraint(fields=["movie_session", "row", "seat"],
+                                    name="unique appversion")
+        ]
 
     def clean(self) -> None:
         if self.row > self.movie_session.cinema_hall.rows:
             raise ValidationError(
                 {"row": ["row number must be in available range: "
                          "(1, rows): "
-                         f"(1, {self.row-1})"]
+                         f"(1, {self.movie_session.cinema_hall.rows})"]
                  })
         if self.seat > self.movie_session.cinema_hall.seats_in_row:
             raise ValidationError(
                 {"seat": ["seat number must be in available range: "
                           "(1, seats_in_row): "
-                          f"(1, {self.seat-1})"]
+                          f"(1, "
+                          f"{self.movie_session.cinema_hall.seats_in_row})"]
                  })
 
     def save(self, *args, **kwargs) -> None:
